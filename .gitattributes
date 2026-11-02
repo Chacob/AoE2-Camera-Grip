@@ -1,0 +1,4 @@
+# Keep Windows line endings for files people open in Notepad / AutoHotkey
+*.ahk text eol=crlf
+*.ini text eol=crlf
+*.md  text eol=crlf

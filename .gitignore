@@ -1,0 +1,8 @@
+# Per-user offset cache written by the script (share new builds via known-builds.ini instead)
+AoE2DE-Drag-Scroll.ini
+
+# Windows clutter
+Thumbs.db
+desktop.ini
+*.bak
+*.lnk
