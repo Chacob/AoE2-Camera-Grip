@@ -9,8 +9,6 @@
 ;
 ;  Ctrl+Alt+F  re-locate offsets   Ctrl+Alt+D  diagnostics   Ctrl+Alt+R  reload
 ;
-;  Offsets for builds someone has already located ship in known-builds.ini.
-;
 ;  Run as administrator. Based on Emerald3ME/AoE2DE-Drag-Scroll (MIT),
 ;  itself a fork of asieradzk/AoE2Mouse_Camera_Drag (MIT).
 ; =============================================================================
@@ -30,13 +28,13 @@ if (A_PtrSize != 8) {
 PanKey := "MButton"   ; e.g. "RButton", "XButton1", "XButton2"
 
 ; ---- Pointer-chain shape:  [module + Base] -> +Hop -> camera struct ; X at +XOff, Y at +XOff+4 ----
-; Defaults = the last layout known to work (Nov 2026). Ctrl+Alt+F also searches Hop/XOff within
-; the ranges below, because patches have changed the struct layout before (X/Y moved 0x2F0 -> 0x228).
-global PtrHop := 0x28, CamXOff := 0x228, MaxMapCoord := 520.0
+; Defaults are the pre-2026-autumn layout. Ctrl+Alt+F also searches Hop/XOff within the ranges
+; below, because the late-2026 builds changed the struct layout.
+global PtrHop := 0x28, CamXOff := 0x2F0, MaxMapCoord := 520.0
 global HopMin := 0x08, HopMax := 0x60, XOffMin := 0x200, XOffMax := 0x3F8
 
 ; ---- Where to start searching (last offsets known to work; updated automatically) ----
-global HintBase := 0x435BD70, HintZoom := 0x3DAAF94
+global HintBase := 0x040EC3A8, HintZoom := 0x3E90FB8
 
 ; ---- Feel (same defaults as the original) ----
 BasePanSpeed         := 0.0341
@@ -51,8 +49,7 @@ DragThreshold        := 12    ; px of travel before it counts as a drag
 ClickTimeThreshold   := 180   ; ms held before it counts as a drag
 
 global GameExe := "AoE2DE_s.exe"
-global IniFile := A_ScriptDir "\AoE2DE-Drag-Scroll.ini"        ; your local cache (not committed)
-global KnownFile := A_ScriptDir "\known-builds.ini"            ; shipped offsets for builds others have located
+global IniFile := A_ScriptDir "\AoE2DE-Drag-Scroll.ini"
 global g_h := 0, g_Pid := 0, g_ModBase := 0, g_Build := "", g_Secs := ""
 global g_Base := 0, g_Zoom := 0, g_LastScan := "", g_Hop := 0x28, g_XOff := 0x2F0
 
@@ -84,7 +81,6 @@ StartPan:
     if (EnsureGame())
         camBase := ResolveCam(g_ModBase + g_Base)
     if (!camBase) {                       ; not in a match / offsets unknown: behave like a normal click
-        DetachGame()
         KeyWait, %PanKey%
         SendInput {%PanKey%}
         return
@@ -155,7 +151,6 @@ StartPan:
         Sleep, 3
     }
 
-    DetachGame()
     if (!DidDrag)
         SendInput {%PanKey%}
 return
@@ -187,25 +182,12 @@ AttachGame() {
     }
     g_ModBase := NumGet(mods, 0, "Ptr")      ; first module = the exe; HMODULE == base address
     ReadPE()
-    src := IniFile
-    IniRead, b, %src%, %g_Build%, Base, 0
-    if (!(b + 0)) {
-        src := KnownFile
-        IniRead, b, %src%, %g_Build%, Base, 0
-    }
-    IniRead, z, %src%, %g_Build%, Zoom, 0
-    IniRead, hp, %src%, %g_Build%, Hop, %PtrHop%
-    IniRead, xo, %src%, %g_Build%, XOff, %CamXOff%
+    IniRead, b, %IniFile%, %g_Build%, Base, 0
+    IniRead, z, %IniFile%, %g_Build%, Zoom, 0
+    IniRead, hp, %IniFile%, %g_Build%, Hop, %PtrHop%
+    IniRead, xo, %IniFile%, %g_Build%, XOff, %CamXOff%
     g_Base := b + 0, g_Zoom := z + 0, g_Hop := hp + 0, g_XOff := xo + 0
     return true
-}
-
-; The game handle is only held while panning / locating / diagnosing, then closed again,
-; so no other process sits on write access to the game the rest of the time.
-DetachGame() {
-    if (g_h)
-        DllCall("CloseHandle", "Ptr", g_h)
-    g_h := 0, g_Pid := 0
 }
 
 EnsureGame() {
@@ -248,7 +230,6 @@ ReadPE() {
 LocateOffsets:
     if (AttachGame())
         Locate()
-    DetachGame()
 return
 
 Locate() {
@@ -300,7 +281,6 @@ Diagnose:
     info := "AHK " A_AhkVersion (A_IsAdmin ? " admin" : " NOT admin")
     if (!AttachGame()) {
         Tip(info "`nCan't attach to " GameExe, 10000)
-        DetachGame()
         return
     }
     info .= "`nbuild " g_Build "  module " Hex(g_ModBase) "`nbase " Hex(g_Base) "  hop " Hex(g_Hop) "  xoff " Hex(g_XOff) "  zoom " Hex(g_Zoom)
@@ -318,7 +298,6 @@ Diagnose:
     if (ls != "")
         info .= "`nlast locate: " ls
     Tip(info, 15000)
-    DetachGame()
 return
 
 
