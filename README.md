@@ -65,10 +65,6 @@ Press **Ctrl+Alt+D** in a match first. It shows most of what's needed to diagnos
 
 When reporting an issue, include a screenshot of the Ctrl+Alt+D tooltip.
 
-## Contributing offsets for a new patch
-
-After Ctrl+Alt+F works on a new build, copy that build's section from your `AoE2DE-Drag-Scroll.ini` (Base, Hop, XOff, Zoom) into `known-builds.ini` and open a pull request. Everyone else on that build then works without running Ctrl+Alt+F.
-
 ## Is this safe?
 
 Read this before you use it online.
